@@ -1,18 +1,24 @@
 #!/usr/bin/env python
 
 from    pathlib                 import Path
-from    argparse                import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter
+from    argparse                import ArgumentParser,                  \
+                                       Namespace,                       \
+                                       ArgumentDefaultsHelpFormatter,   \
+                                       RawTextHelpFormatter
 
-import  os, sys
+from importlib.metadata import Distribution
+
+__pkg       = Distribution.from_name(__package__)
+__version__ = __pkg.version
+
+import  os, sys, json
 import  pudb
 from    pudb.remote             import set_trace
 
-from    loguru                  import logger
 from    concurrent.futures      import ThreadPoolExecutor
 from    threading               import current_thread
 
 from    typing                  import Callable
-
 from    datetime                import datetime, timezone
 
 from    state                   import data
@@ -22,8 +28,6 @@ from    control.filter          import PathFilter
 
 
 Env             = data.env()
-PLinputFilter   = None
-LOG             = None
 
 __version__ = '1.0.0'
 
@@ -38,26 +42,231 @@ DISPLAY_TITLE = r"""
 |_|            |___/
 """
 
+str_desc                =  DISPLAY_TITLE + """
 
-parser          = ArgumentParser(
+                        -- version """ + __version__ + """ --
+
+                Register a plugin to a CUBE instance.
+
+    This app is a straightforward CLI tool that can be used to
+    register a plugin directly to a CUBE instance using the the
+    CUBE API directly. This approach bypasses the historic need
+    to use a ChRIS Store as an intermediary. Besides being a
+    logically much simpler mechanism for registering plugins to
+    a CUBE, it also allows for considerable portability of control
+    in plugin management.
+
+    Note that an FNNDSC-specific (but not-easily-generalizable)
+    solution using fnndsc_chrisomatic is also available, and is
+    discussed elsewhere.
+
+"""
+
+package_CLIself         = """
+        --dock_image <container_name>                                           \\
+        --name <pluginNameInCUBE>                                               \\
+        --public_repo <repo_name>                                               \\
+        [--pluginexec <exec>]                                                   \\
+        [--computenames <commalist,of,envs>]                                    \\
+        [--CUBEurl <CUBEURL>]                                                   \\
+        [--CUBEuser <user>]                                                     \\
+        [--CUBEpasswd <password>]                                               \\
+        [--json <jsonRepFile>]                                                  \\
+        [--inputdir <inputdir>]                                                 \\
+        [--outputdir <outputdir>]                                               \\
+        [--man]                                                                 \\
+        [--verbosity <level>]                                                   \\
+        [--debug]                                                               \\
+        [--debugTermsize <cols,rows>]                                           \\
+        [--debugHost <0.0.0.0>]                                                 \\
+        [--debugPort <7900>]"""
+
+package_CLIsynpsisArgs = """
+    ARGUMENTS
+
+        --dock_image <container_name>
+        The name of the plugin container image. This is typically something like
+
+                                fnndsc/pl-someAnalysis
+        or
+                            localhost/fnndsc/pl-someAnalysis
+
+        --name <pluginNameInCUBE>
+        The name of the plugin within CUBE. Typically something like
+        "pl-someAnalysis".
+
+        --public_repo <repo_name>
+        The URL of the plugin code, typically on github. This is accessed to
+        find a README.[rst|md] which is used by the ChRIS UI when providing
+        plugin details.
+
+        [--pluginexec <exec>]
+        The name of the actual plugin executable within the image if this
+        executable does not conform to standard conventions.
+
+        [--computenames <commalist,of,envs>] ("host")
+        A comma separted list of compute environments within a CUBE to which
+        the plugin can be registered.
+
+        [--CUBEurl <CUBEURL>] ("http://localhost:8000/api/v1/")
+        The URL of the CUBE to manage.
+
+        [--CUBEuser <user>] ("chris")
+        The name of the administration CUBE user.
+
+        [--CUBEpasswd <password>] ("chris1234")
+        The admin password.
+
+        [--json <jsonRepFile>]
+        If provided, read the representation from <jsonRepFile> and do not
+        attempt to run the plugin with docker.
+
+        [--inputdir <inputdir>]
+        An optional input directory specifier.
+
+        [--outputdir <outputdir>]
+        An optional output directory specifier. Some files are typically created
+        and executed from the <outputdir>.
+
+        [--man]
+        If specified, show this help page and quit.
+
+        [--verbosity <level>]
+        Set the verbosity level. The app is currently chatty at level 0 and level 1
+        provides even more information.
+
+        [--debug]
+        If specified, toggle internal debugging. This will break at any breakpoints
+        specified with 'Env.set_trace()'
+
+        [--debugTermsize <253,62>]
+        Debugging is via telnet session. This specifies the <cols>,<rows> size of
+        the terminal.
+
+        [--debugHost <0.0.0.0>]
+        Debugging is via telnet session. This specifies the host to which to connect.
+
+        [--debugPort <7900>]
+        Debugging is via telnet session. This specifies the port on which the telnet
+        session is listening.
+"""
+
+package_CLIexample = """
+    BRIEF EXAMPLE
+
+        plugin2cube                                                             \\
+            --computenames host,galena                                          \\
+            --name pl-volseg                                                    \\
+            --dock_image fnndc/pl-volseg                                        \\
+            --public_repo https://github.com/FNNDSC/pl-volseg                   \\
+            --CUBEurl http:localhost:8000/api/v1/                               \\
+            --CUBEuser chrisadmin                                               \\
+            --CUBEpasswd something1234
+
+"""
+
+def synopsis(ab_shortOnly = False):
+    scriptName = os.path.basename(sys.argv[0])
+    shortSynopsis =  '''
+    NAME
+
+        plugin2cube
+
+    SYNOPSIS
+
+        plugin2cube                                                             \ '''\
+        + package_CLIself + '''
+
+    '''
+
     description = '''
-A ChRIS application that uploads a plugin directly to a CUBE instance.
+    DESCRIPTION
+
+        `plugin2cube` is a simple app that allows for the registration of a
+        plugin image directly to a CUBE instance without the need of a ChRIS
+        Store as intermediary. This allows for simpler, more portable manage-
+        ment of plugins in a given CUBE.
+
+        The script does need to determine the plugin JSON representation.
+        There are two broad mechanisms for resolving this. The first is to
+        simply read this representation from a file. The second is to actually
+        _run_ the plugin image to determine the representation.
+
+        Running the image does require `docker` to be present on the host
+        executing this script. Two assumptions are made in this case:
+
+            1. The plugin has been created using the `chris_plugin_template`
+               in which case the `chris_plugin_info` mechanism is used to
+               determine the JSON representation. This is attempted, and if
+               successful, the representation is used.
+            2. Failing that, the plugin is assumed to be created using the
+               cookiecutter mechanism (or similar) and that the plugin code
+               supports the `--json` flag to describe its representation. In
+               this case, the script, if not explicitly told what the actual
+               plugin executable within the image (from --pluginexec) is, will
+               assume that the executable can be found from the docker image
+               name as
+
+                            <prefix>/<prefix>/.../pl-<pluginexec>
+
+    ''' + package_CLIsynpsisArgs + package_CLIexample
+    if ab_shortOnly:
+        return shortSynopsis
+    else:
+        return shortSynopsis + description
+
+parser                  = ArgumentParser(
+    description         = '''
+A CLI app to upload a plugin to a CUBE instance.
 ''',
-    formatter_class=ArgumentDefaultsHelpFormatter)
+    formatter_class     = RawTextHelpFormatter
+)
 
 
-parser.add_argument('-V', '--version', action='version',
-                    version=f'%(prog)s {__version__}')
-
+parser.add_argument(
+            '--version',
+            default = False,
+            dest    = 'b_version',
+            action  = 'store_true',
+            help    = 'print version info'
+)
+parser.add_argument(
+            '--man',
+            default = False,
+            action  = 'store_true',
+            help    = 'show a man page'
+)
+parser.add_argument(
+            '--osenv',
+            default = False,
+            action  = 'store_true',
+            help    = 'show the base os environment'
+)
+parser.add_argument(
+            '--synopsis',
+            default = False,
+            action  = 'store_true',
+            help    = 'show a synopsis'
+)
+parser.add_argument(
+            '--inputdir',
+            default = './',
+            help    = 'optional directory specifying extra input-relative data'
+)
+parser.add_argument(
+            '--outputdir',
+            default = './',
+            help    = 'optional directory specifying location of any output data'
+)
 parser.add_argument(
             '--computenames',
             default = 'host',
             help    = 'comma separated list of compute environments against which to register the plugin'
 )
 parser.add_argument(
-            '--dock_name',
-            default = 'host',
-            help    = 'comma separated list of compute environments against which to register the plugin'
+            '--dock_image',
+            default = '',
+            help    = 'name of the docker container'
 )
 parser.add_argument(
             '--name',
@@ -65,14 +274,19 @@ parser.add_argument(
             help    = 'plugin name within CUBE'
 )
 parser.add_argument(
-            '--json',
-            default = '',
-            help    = 'plugin JSON representation'
-)
-parser.add_argument(
             '--public_repo',
             default = '',
             help    = 'repo hosting the container image'
+)
+parser.add_argument(
+            '--pluginexec',
+            default = '',
+            help    = 'plugin executable name for cookiecutter style pluginsp'
+)
+parser.add_argument(
+            '--json',
+            default = '',
+            help    = 'plugin JSON representation file'
 )
 parser.add_argument(
             '--CUBEurl',
@@ -85,7 +299,7 @@ parser.add_argument(
             help    = 'CUBE username'
 )
 parser.add_argument(
-            '--CUBEpassword',
+            '--CUBEpasswd',
             default = 'chris1234',
             help    = 'CUBE password'
 )
@@ -93,20 +307,6 @@ parser.add_argument(
             '--verbosity',
             default = '0',
             help    = 'verbosity level of app'
-)
-parser.add_argument(
-            "--thread",
-            help    = "use threading to branch in parallel",
-            dest    = 'thread',
-            action  = 'store_true',
-            default = False
-)
-parser.add_argument(
-            "--inNode",
-            help    = "perform in-node implicit parallelization in conjunction with --thread",
-            dest    = 'inNode',
-            action  = 'store_true',
-            default = False
 )
 parser.add_argument(
             "--debug",
@@ -132,22 +332,7 @@ parser.add_argument(
 )
 
 
-# def _mapper_dir_contains_factory(glob: str) -> Callable[[Path], bool]:
-#     """
-#     Creates a function suitable for use with a ``PathMapper``.
-#     That function returns true if its path argument is a directory
-#     containing a file which matches the given glob.
-#     """
-
-#     def _dir_contains(path: Path) -> bool:
-#         if not path.is_dir():
-#             return False
-#         match = path.glob(glob)
-#         return next(match, None) is not None
-
-#     return _dir_contains
-
-def Env_setup(options: Namespace, inputdir: Path, outputdir: Path):
+def Env_setup(options: Namespace):
     """
     Setup the environment
 
@@ -157,9 +342,13 @@ def Env_setup(options: Namespace, inputdir: Path, outputdir: Path):
         outputdir (Path):       plugin global output directory
     """
     global Env
+    options.inputdir        = Path(options.inputdir)
+    options.outputdir       = Path(options.outputdir)
+    Env.inputdir            = options.inputdir
+    Env.outputdir           = options.outputdir
     Env.CUBE.url            = str(options.CUBEurl)
     Env.CUBE.user           = str(options.CUBEuser)
-    Env.CUBE.password       = str(options.CUBEpassword)
+    Env.CUBE.password       = str(options.CUBEpasswd)
     Env.debug_setup(
                 debug       = options.debug,
                 termsize    = options.debugTermSize,
@@ -167,112 +356,132 @@ def Env_setup(options: Namespace, inputdir: Path, outputdir: Path):
                 host        = options.debugHost
     )
 
-def prep_do(options: Namespace, inputdir: Path, outputdir: Path):
-    '''
+def prep_do(options: Namespace) -> action.PluginRun:
+    """
     Perform some setup and initial LOG output
-    '''
-    global Env, LOG, PLinputFilter
 
-    PLinputFilter           = action.PluginRun(env = Env, options = options)
-    LOG                     = logger.debug
+    Args:
+        options (Namespace): input CLI options
 
-    LOG("Starting growth cycle...")
+    Returns:
+        action.PluginRun: a runnable object that is used to determine the
+                          plugin JSON representation
+    """
+    global Env
 
-    LOG("plugin arguments...")
+    PLjson                  = action.PluginRun(env = Env, options = options)
+
+    Env.INFO("Doing some quick prep...")
+
+    Env.DEBUG("plugin arguments...")
     for k,v in options.__dict__.items():
-         LOG("%25s:  [%s]" % (k, v))
-    LOG("")
+         Env.DEBUG("%25s:  [%s]" % (k, v))
+    Env.DEBUG("")
 
-    LOG("base environment...")
-    for k,v in os.environ.items():
-         LOG("%25s:  [%s]" % (k, v))
-    LOG("")
+    if options.osenv:
+        Env.DEBUG("base environment...")
+        for k,v in os.environ.items():
+            Env.DEBUG("%25s:  [%s]" % (k, v))
+        Env.DEBUG("")
 
-def tree_grow(options: Namespace, input: Path, output: Path = None) -> dict:
-    '''
-    Based on some conditional of the <input> direct the
-    dynamic "growth" of this feed tree from the parent node
-    of *this* plugin.
-    '''
-    global Env, PLinputFilter, LLD, LOG
+    return PLjson
 
-    Env.set_trace()
+def plugin_add(options: Namespace, PLjson : action.PluginRun) -> dict:
+    """
+    Add the described plugin to the specified CUBE.
 
-    timenow                 = lambda: datetime.now(timezone.utc).astimezone().isoformat()
-    LLD                     = action.LLDcomputeflow(env = Env, options = options)
-    conditional             = behavior.Filter()
-    conditional.obj_pass    = behavior.unconditionalPass
+    Args:
+        options (Namespace): CLI option space
+        PLjson (action.PluginRun): a runnable object used to determine the
+                                   base JSON representation
 
-    str_threadName          : str   = current_thread().getName()
-    LOG("Growing a tree in thread %s..." % str_threadName)
-    str_heartbeat           = str(Env.outputdir.joinpath('heartbeat-%s.log' % str_threadName))
-    fl                      = open(str_heartbeat, 'w')
-    fl.write('Start time: {}'.format(timenow()))
-    if conditional.obj_pass(str(input)):
-        LOG("Tree planted off %s" % str(input))
-        d_nodeInput         = PLinputFilter(str(input))
-        if d_nodeInput['status']:
-            d_LLDflow       = LLD(  d_nodeInput['branchInstanceID'])
-            LOG('Flow result:')
-            LOG('%s' % json.dumps(d_LLDflow, indent = 4))
-            LOG('-30-')
+    Returns:
+        dict: the JSON return from the CUBE API for registration
+    """
+
+    def file_timestamp(str_stamp : str = ""):
+        """
+        Simple timestamp to file
+
+        Args:
+            str_prefix (str): an optional prefix string before the timestamp
+        """
+        timenow                 = lambda: datetime.now(timezone.utc).astimezone().isoformat()
+        str_heartbeat   : str   = str(Env.outputdir.joinpath('run-%s.log' % str_threadName))
+        fl                      = open(str_heartbeat, 'a')
+        fl.write('{}\t%s\n'.format(timenow()) % str_stamp)
+        fl.close()
+
+    def jsonRep_get() -> dict:
+        """
+        Determine the plugin JSON representation
+
+        Returns:
+            dict: JSON representation
+        """
+        d_jsonRep   = PLjson()
+        return d_jsonRep
+
+    global Env, PLrun
+
+    # Env.set_trace()
+
+    register                = action.Register(env = Env, options = options)
+    d_register      : dict  = None
+    str_threadName  : str   = current_thread().getName()
+    file_timestamp('START')
+
+    Env.INFO("Adding plugin...")
+    d_register          = register(jsonRep_get())
+    Env.INFO('Register result:')
+    if d_register['status']:
+        Env.INFO('\n%s' % json.dumps(d_register, indent = 4))
+    else:
+        Env.ERROR('\n%s' % json.dumps(d_register, indent =4))
+    Env.INFO('-30-')
+    file_timestamp('\n%s' % json.dumps(d_register, indent = 4))
+    file_timestamp('END')
+    return d_register
+
+def earlyExit_check(args) -> int:
+    """
+    Perform some preliminary checks
+
+    If version or synospis are requested, print these and return
+    code for early exit.
+    """
+    if args.man or args.synopsis:
+        print(str_desc)
+        if args.man:
+            str_help     = synopsis(False)
         else:
-            LOG("Some error was returned from the node analysis!",  comms = 'error')
-            LOG('stdout: %s' % d_nodeInput['run']['stdout'],        comms = 'error')
-            LOG('stderr: %s' % d_nodeInput['run']['stderr'],        comms = 'error')
-            LOG('return: %s' % d_nodeInput['run']['returncode'],    comms = 'error')
-    fl.write('End   time: {}'.format(timenow()))
-    fl.close()
+            str_help     = synopsis(True)
+        print(str_help)
+        return 1
+    if args.b_version:
+        print("Name:    %s\nVersion: %s" % (__pkg.name, __version__))
+        return 1
+    return 0
 
-# documentation: https://fnndsc.github.io/chris_plugin/chris_plugin.html#chris_plugin
-@chris_plugin(
-    parser              = parser,
-    title               = 'Leg-Length Discrepency - Dynamic Compute Flow',
-    category            = '',               # ref. https://chrisstore.co/plugins
-    min_memory_limit    = '100Mi',          # supported units: Mi, Gi
-    min_cpu_limit       = '1000m',          # millicores, e.g. "1000m" = 1 CPU core
-    min_gpu_limit       = 0                 # set min_gpu_limit=1 to enable GPU
-)
-def main(options: Namespace, inputdir: Path, outputdir: Path):
+def main(args=None):
     """
-    :param options: non-positional arguments parsed by the parser given to @chris_plugin
-    :param inputdir: directory containing input files (read-only)
-    :param outputdir: directory where to write output files
     """
+    options     = parser.parse_args()
+    if earlyExit_check(options): return 1
 
-    global Env, LOG
+    global Env
     # set_trace(term_size=(253, 62), host = '0.0.0.0', port = 7900)
 
-    Env_setup(options, inputdir, outputdir)
+    Env.options     = options
+    Env_setup(options)
     Env.set_telnet_trace_if_specified()
+    pudb.set_trace()
 
     print(DISPLAY_TITLE)
 
-    ground_prep(options, inputdir, outputdir)
-    if len(Env.CUBE.parentPluginInstanceID):
-        LOG("Sewing seeds...")
-        Path('%s/start.touch' % str(outputdir)).touch()
-        output = None
+    d_register = plugin_add(options, prep_do(options))
 
-    LOG("Sewing seeds...")
-    Path('%s/start.touch' % str(outputdir)).touch()
-    output = None
-    # Are we processing all the data in one tree (i.e. inNode)
-    # or will every data element have its own tree?
-    if not options.inNode:
-        mapper  = PathMapper.file_mapper(inputdir, outputdir,
-                            glob        = options.pattern)
-    else:
-        mapper  = PathMapper(inputdir, outputdir,
-                            filter      = _mapper_dir_contains_factory(options.pattern))
-    if int(options.thread):
-        with ThreadPoolExecutor(max_workers=len(os.sched_getaffinity(0))) as pool:
-            results = pool.map(lambda t: tree_grow(options, *t), mapper)
-    else:
-        for input, output in mapper:
-            tree_grow(options, input, output)
-
-    LOG("Ending growth cycle...")
+    Env.INFO("terminating...")
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main(args))
