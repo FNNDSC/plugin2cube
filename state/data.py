@@ -9,6 +9,8 @@ str_about = '''
 from    pudb.remote             import set_trace
 from    curses                  import meta
 from    pathlib                 import Path
+from    argparse                import Namespace
+from    loguru                  import logger
 import  pudb
 import  json
 import  os
@@ -23,6 +25,9 @@ class env:
         '''
         Constructor
         '''
+        self._options   : Namespace         = None
+        self._inputdir  : Path              = None
+        self._outputdir : Path              = None
         self.CUBE       : CUBEinstance      = CUBEinstance()
         self.debug      : dict              = {
             'do'        : False,
@@ -30,6 +35,33 @@ class env:
             'port'      : 7900,
             'host'      : '0.0.0.0'
         }
+        self.DEBUG      = logger.debug
+        self.INFO       = logger.info
+        self.ERROR      = logger.error
+
+    @property
+    def options(self):
+        return self._options
+
+    @options.setter
+    def options(self, a):
+        self._options   = a
+
+    @property
+    def inputdir(self):
+        return self._inputdir
+
+    @inputdir.setter
+    def inputdir(self, a):
+        self._inputdir = a
+
+    @property
+    def outputdir(self):
+        return self._outputdir
+
+    @outputdir.setter
+    def outputdir(self, a):
+        self._outputdir = a
 
     def debug_setup(self, **kwargs) -> dict:
         """
@@ -143,7 +175,6 @@ class CUBEinstance:
     def port(self, a):
         self.d_CUBE['port'] = a
 
-
     def onCUBE(self) -> dict:
         '''
         Return a dictionary that is a subset of self.d_CUBE
@@ -177,7 +208,7 @@ class CUBEinstance:
             self.d_CUBE['address']  = l_IPport[0]
         return self.d_CUBE
 
-    def url(self, *args):
+    def furl(self, *args):
         '''
         get/set the URL
         '''
