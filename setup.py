@@ -27,7 +27,7 @@ setup(
     author_email        = 'rudolph.pienaar@childrens.harvard.edu',
     url                 = 'https://github.com/rudolphpienaar/pl-dylld',
     py_modules          = ['plugin2cube'],
-    install_requires    = ['pudb'],
+    install_requires    = ['pudb', 'loguru', 'python-chrisclient'],
     packages            = ['control', 'logic', 'state'],
     license             = 'MIT',
     entry_points        = {
