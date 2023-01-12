@@ -26,6 +26,7 @@ class env:
         '''
         Constructor
         '''
+        self._version   : str               = ''
         self._options   : Namespace         = None
         self._inputdir  : Path              = None
         self._outputdir : Path              = None
@@ -53,6 +54,14 @@ class env:
 
     def ERROR(self, *args):
         logger.opt(depth=1).error(*args)
+
+    @property
+    def version(self):
+        return self._version
+
+    @version.setter
+    def version(self, a):
+        self._version   = a
 
     @property
     def options(self):

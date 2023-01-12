@@ -24,19 +24,19 @@ with open(path.join(path.dirname(path.abspath(__file__)), 'README.rst')) as f:
 
 setup(
     name                = 'plugin2cube',
-    version             = get_version('plugin2cube.py'),
+    version             = get_version('plugin2cube/plugin2cube.py'),
     description         = 'A ChRIS helper app that registers a plugin to a CUBE instance',
     long_description    =  readme,
     author              = 'FNNDSC',
     author_email        = 'rudolph.pienaar@childrens.harvard.edu',
     url                 = 'https://github.com/FNNDSC/plugin2cube',
-    py_modules          = ['plugin2cube'],
+    # py_modules          = ['plugin2cube'],
     install_requires    = ['pudb', 'loguru', 'python-chrisclient'],
-    packages            = ['control', 'logic', 'state'],
+    packages            = ['control', 'logic', 'state', 'plugin2cube'],
     license             = 'MIT',
     entry_points        = {
         'console_scripts': [
-            'plugin2cube = plugin2cube:main'
+            'plugin2cube = plugin2cube.__main__:main'
         ]
     },
     classifiers         =[
