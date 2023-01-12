@@ -34,7 +34,7 @@ class PluginRun:
             if k == 'env'               : self.env                  = v
             if k == 'options'           : self.options              = v
         self.shell              : jobber.Jobber     = jobber.Jobber({
-                                                        'verbosity' :   self.options.verbosity,
+                                                        'verbosity' :   0,
                                                         'noJobLogging': True
                                                         })
 
@@ -96,7 +96,7 @@ class PluginRun:
         self.env.INFO('Attempting cookiecutter call to find JSON representation...')
         str_pluginexec  : str   = self.env.options.pluginexec
         if not len(self.env.options.pluginexec):
-            str_pluginexec = (str_containerspec.split('/')[-1]).split('-')[-1]
+            str_pluginexec = ((str_containerspec.split('/')[-1]).split('-')[-1]).split(':')[0]
         str_args        : str   = """
         run --rm %s %s --json
         """ % (str_containerspec, str_pluginexec)
@@ -118,6 +118,16 @@ class PluginRun:
         return {
             'cmd' : str_cmd
         }
+
+    def docker_pull(self) -> dict:
+        """
+        Pull the container image.
+
+        Returns:
+            dict: results from jobber call
+        """
+        d_dockerpull    : dict  = self.shell.job_run("docker pull %s" % self.options.dock_image)
+        return d_dockerpull
 
     def jsonScript_buildAndExec(self, argfunc) -> dict:
         """
@@ -184,9 +194,11 @@ class PluginRun:
         '''
         b_status        : bool  = False
         d_runCMDresp    : dict  = {'returncode' : 1}
+        d_json          : dict  = {'error' : 'all attempts to determine representation failed'}
         if len(self.env.options.json):
             d_runCMDresp        = self.json_readFromFile()
         if d_runCMDresp['returncode']:
+            self.env.INFO('\ndocker pull:\n%s' % json.dumps(self.docker_pull(), indent = 4))
             for argfunc in [self.chris_plugin_info_args, self.chris_cookiecutter_info_args]:
                 d_runCMDresp    = self.jsonScript_buildAndExec(argfunc)
                 if d_runCMDresp['returncode']:
@@ -224,8 +236,6 @@ class Register:
                                             self.env.CUBE.user,
                                             self.env.CUBE.password
                                         )
-        # self.d_pipelines        : dict  = self.cl.get_pipelines()
-        # self.pltopo             : int   = self.cl.get_plugins({'name': 'pl-topologicalcopy'})
         self.ld_workflowhist    : list  = []
         self.ld_topologicalNode : dict  = {'data': []}
 
