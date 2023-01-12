@@ -14,6 +14,7 @@ from    loguru                  import logger
 import  pudb
 import  json
 import  os
+import  inspect
 
 class env:
     '''
@@ -36,14 +37,22 @@ class env:
             'host'      : '0.0.0.0'
         }
 
-    def DEBUG(self, *args):
-        if int(self.options.verbosity): logger.debug(*args)
+    def DEBUG(self, *args, **kwargs):
+        level   : int   = 1
+        for k,v in kwargs.items():
+            if k == 'level' : level = v
+        if int(self.options.verbosity) >= level:
+            logger.opt(depth=1).debug(*args)
 
-    def INFO(self, *args):
-        if int(self.options.verbosity): logger.info(*args)
+    def INFO(self, *args, **kwargs):
+        level   : int   = 1
+        for k,v in kwargs.items():
+            if k == 'level' : level = v
+        if int(self.options.verbosity) >= level:
+            logger.opt(depth=1).info(*args)
 
     def ERROR(self, *args):
-        logger.error(*args)
+        logger.opt(depth=1).error(*args)
 
     @property
     def options(self):

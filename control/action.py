@@ -182,7 +182,6 @@ class PluginRun:
         * failing that, using the cookiecutter calling spec
 
         '''
-        pudb.set_trace()
         b_status        : bool  = False
         d_runCMDresp    : dict  = {'returncode' : 1}
         if len(self.env.options.json):

@@ -29,7 +29,7 @@ from    control.filter          import PathFilter
 
 Env             = data.env()
 
-__version__ = '1.0.14'
+__version__ = '1.0.16'
 
 DISPLAY_TITLE = r"""
        _             _        _____            _
@@ -466,7 +466,8 @@ def earlyExit_check(args) -> int:
 def main(args=None):
     """
     """
-    options     = parser.parse_args()
+    options             = parser.parse_args()
+    retcode     : int   = 0
     if earlyExit_check(options): return 1
 
     global Env
@@ -475,13 +476,14 @@ def main(args=None):
     Env.options     = options
     Env_setup(options)
     Env.set_telnet_trace_if_specified()
-    pudb.set_trace()
 
     print(DISPLAY_TITLE)
-
     d_register = plugin_add(options, prep_do(options))
 
-    Env.INFO("terminating...")
+    if not d_register['status']:    retcode = 1
+    else:                           retcode = 0
+    Env.INFO("terminating with code %d..." % retcode)
+    return retcode
 
 if __name__ == '__main__':
     sys.exit(main(args))
