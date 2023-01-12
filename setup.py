@@ -18,11 +18,14 @@ def get_version(rel_path: str) -> str:
             raise RuntimeError(f'Could not find __version__ in {rel_path}')
         return version.group(0)
 
+with open(path.join(path.dirname(path.abspath(__file__)), 'README.rst')) as f:
+    readme = f.read()
 
 setup(
     name                = 'plugin2cube',
     version             = get_version('plugin2cube.py'),
     description         = 'A ChRIS helper app that registers a plugin to a CUBE instance',
+    long_description    =  readme,
     author              = 'FNNDSC',
     author_email        = 'rudolph.pienaar@childrens.harvard.edu',
     url                 = 'https://github.com/FNNDSC/plugin2cube',
