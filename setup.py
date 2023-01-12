@@ -25,7 +25,7 @@ setup(
     description         = 'A ChRIS helper app that registers a plugin to a CUBE instance',
     author              = 'FNNDSC',
     author_email        = 'rudolph.pienaar@childrens.harvard.edu',
-    url                 = 'https://github.com/rudolphpienaar/pl-dylld',
+    url                 = 'https://github.com/FNNDSC/plugin2cube',
     py_modules          = ['plugin2cube'],
     install_requires    = ['pudb', 'loguru', 'python-chrisclient'],
     packages            = ['control', 'logic', 'state'],
