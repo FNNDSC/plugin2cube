@@ -29,7 +29,7 @@ from    control.filter          import PathFilter
 
 Env             = data.env()
 
-__version__ = '1.0.10'
+__version__ = '1.0.12'
 
 DISPLAY_TITLE = r"""
        _             _        _____            _
