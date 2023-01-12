@@ -22,7 +22,7 @@ def get_version(rel_path: str) -> str:
 setup(
     name                = 'plugin2cube',
     version             = get_version('plugin2cube.py'),
-    description         = 'A ChRIS helped app that registers a plugin to a CUBE instance',
+    description         = 'A ChRIS helper app that registers a plugin to a CUBE instance',
     author              = 'FNNDSC',
     author_email        = 'rudolph.pienaar@childrens.harvard.edu',
     url                 = 'https://github.com/rudolphpienaar/pl-dylld',
