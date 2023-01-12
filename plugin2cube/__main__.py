@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+import pudb
+
+try:
+    from    .                   import plugin2cube
+except:
+    from plugin2cube            import plugin2cube
 
 from    pathlib                 import Path
 from    argparse                import ArgumentParser,                  \
@@ -14,22 +20,9 @@ __version__ = __pkg.version
 import  os, sys, json
 import  pudb
 from    pudb.remote             import set_trace
-
-from    concurrent.futures      import ThreadPoolExecutor
-from    threading               import current_thread
-
-from    typing                  import Callable
-from    datetime                import datetime, timezone
-
 from    state                   import data
-from    logic                   import behavior
-from    control                 import action
-from    control.filter          import PathFilter
-
 
 Env             = data.env()
-
-__version__ = '1.0.16'
 
 DISPLAY_TITLE = r"""
        _             _        _____            _
@@ -331,15 +324,12 @@ parser.add_argument(
             default = '0.0.0.0'
 )
 
-
 def Env_setup(options: Namespace):
     """
     Setup the environment
 
     Args:
         options (Namespace):    options passed from the CLI caller
-        inputdir (Path):        plugin global input directory
-        outputdir (Path):       plugin global output directory
     """
     global Env
     options.inputdir        = Path(options.inputdir)
@@ -355,93 +345,6 @@ def Env_setup(options: Namespace):
                 port        = options.debugPort,
                 host        = options.debugHost
     )
-
-def prep_do(options: Namespace) -> action.PluginRun:
-    """
-    Perform some setup and initial LOG output
-
-    Args:
-        options (Namespace): input CLI options
-
-    Returns:
-        action.PluginRun: a runnable object that is used to determine the
-                          plugin JSON representation
-    """
-    global Env
-
-    PLjson                  = action.PluginRun(env = Env, options = options)
-
-    Env.INFO("Doing some quick prep...")
-
-    Env.DEBUG("plugin arguments...")
-    for k,v in options.__dict__.items():
-         Env.DEBUG("%25s:  [%s]" % (k, v))
-    Env.DEBUG("")
-
-    if options.osenv:
-        Env.DEBUG("base environment...")
-        for k,v in os.environ.items():
-            Env.DEBUG("%25s:  [%s]" % (k, v))
-        Env.DEBUG("")
-
-    return PLjson
-
-def plugin_add(options: Namespace, PLjson : action.PluginRun) -> dict:
-    """
-    Add the described plugin to the specified CUBE.
-
-    Args:
-        options (Namespace): CLI option space
-        PLjson (action.PluginRun): a runnable object used to determine the
-                                   base JSON representation
-
-    Returns:
-        dict: the JSON return from the CUBE API for registration
-    """
-
-    def file_timestamp(str_stamp : str = ""):
-        """
-        Simple timestamp to file
-
-        Args:
-            str_prefix (str): an optional prefix string before the timestamp
-        """
-        timenow                 = lambda: datetime.now(timezone.utc).astimezone().isoformat()
-        str_heartbeat   : str   = str(Env.outputdir.joinpath('run-%s.log' % str_threadName))
-        fl                      = open(str_heartbeat, 'a')
-        fl.write('{}\t%s\n'.format(timenow()) % str_stamp)
-        fl.close()
-
-    def jsonRep_get() -> dict:
-        """
-        Determine the plugin JSON representation
-
-        Returns:
-            dict: JSON representation
-        """
-        d_jsonRep   = PLjson()
-        return d_jsonRep
-
-    global Env, PLrun
-
-    # Env.set_trace()
-
-    register                = action.Register(env = Env, options = options)
-    d_register      : dict  = None
-    str_threadName  : str   = current_thread().getName()
-    file_timestamp('START')
-
-    Env.INFO("Adding plugin...")
-    d_register          = register(jsonRep_get())
-    Env.INFO('Register result:')
-    if d_register['status']:
-        Env.INFO('\n%s' % json.dumps(d_register, indent = 4))
-    else:
-        Env.ERROR('\n%s' % json.dumps(d_register, indent =4))
-    Env.INFO('-30-')
-    file_timestamp('\n%s' % json.dumps(d_register, indent = 4))
-    file_timestamp('END')
-    return d_register
 
 def earlyExit_check(args) -> int:
     """
@@ -465,12 +368,16 @@ def earlyExit_check(args) -> int:
 
 def main(args=None):
     """
+    Main method for the programmatical calling of the plugin2cube
+    module
     """
+    global Env
+    Env.version         = plugin2cube.__version__
+
     options             = parser.parse_args()
     retcode     : int   = 0
     if earlyExit_check(options): return 1
 
-    global Env
     # set_trace(term_size=(253, 62), host = '0.0.0.0', port = 7900)
 
     Env.options     = options
@@ -478,7 +385,7 @@ def main(args=None):
     Env.set_telnet_trace_if_specified()
 
     print(DISPLAY_TITLE)
-    d_register = plugin_add(options, prep_do(options))
+    d_register      = plugin2cube.plugin2cube(options = options, env = Env).run()
 
     if not d_register['status']:    retcode = 1
     else:                           retcode = 0
