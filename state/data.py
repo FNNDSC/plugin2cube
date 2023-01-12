@@ -35,9 +35,15 @@ class env:
             'port'      : 7900,
             'host'      : '0.0.0.0'
         }
-        self.DEBUG      = logger.debug
-        self.INFO       = logger.info
-        self.ERROR      = logger.error
+
+    def DEBUG(self, *args):
+        if int(self.options.verbosity): logger.debug(*args)
+
+    def INFO(self, *args):
+        if int(self.options.verbosity): logger.info(*args)
+
+    def ERROR(self, *args):
+        logger.error(*args)
 
     @property
     def options(self):

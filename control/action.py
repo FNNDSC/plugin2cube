@@ -190,7 +190,9 @@ class PluginRun:
         if d_runCMDresp['returncode']:
             for argfunc in [self.chris_plugin_info_args, self.chris_cookiecutter_info_args]:
                 d_runCMDresp    = self.jsonScript_buildAndExec(argfunc)
-                if not d_runCMDresp['returncode']: break
+                if d_runCMDresp['returncode']:
+                    self.env.ERROR('\n%s' % json.dumps(d_runCMDresp, indent = 4))
+                else: break
         if not d_runCMDresp['returncode']:
             b_status            = True
             self.l_runCMDresp.append(d_runCMDresp)
