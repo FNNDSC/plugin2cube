@@ -1,6 +1,7 @@
 from setuptools import setup
 import re
 import os
+from os import path
 
 _version_re = re.compile(r"(?<=^__version__ = (\"|'))(.+)(?=\"|')")
 
