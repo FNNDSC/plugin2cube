@@ -21,8 +21,14 @@ from    argparse                import ArgumentParser, Namespace
 from    chrisclient             import client
 import  time
 
-class PluginRun:
+
+pluginexec          = lambda s: ((s.split('/')[-1]).split('-')[-1]).split(':')[0]
+pluginname          = lambda s: ((s.split('/')[-1])).split(':')[0]
+public_repo         = lambda u, s: '%s/%s' % (u, pluginname(s))
+
+class Shexec:
     '''
+    A thin base class providing the chassis for executing sh-based apps.
     A simple class wrapper that runs a container image to determine its
     json description
     '''
@@ -39,6 +45,54 @@ class PluginRun:
                                                         })
 
         self.l_runCMDresp       : list  = []
+
+    def string_clean(self, str_string : str) -> str:
+        """
+        Clean/strip/whitespace in a string
+
+        Args:
+            str_string (str): string to clean
+
+        Returns:
+            str: cleaned up string
+        """
+        str_clean   = re.sub(r';\n.*--', ';--', str_string)
+        str_clean   = str_clean.strip()
+        return str_clean
+
+    def docker_pull(self) -> dict:
+        """
+        Pull the container image.
+
+        Returns:
+            dict: results from jobber call
+        """
+        str_cmd         : str   = "docker pull %s" % self.options.dock_image
+        d_dockerpull    : dict  = self.shell.job_run(str_cmd)
+        self.env.INFO("\n%s" % str_cmd)
+        return d_dockerpull
+
+
+    def __call__(self) ->dict:
+        '''
+        Base entry point
+        '''
+        b_status        : bool  = False
+        d_runCMDresp    : dict  = {'returncode' : 1}
+        d_json          : dict  = {'nop' : 'dummy return'}
+        return {
+            'status'            : b_status,
+            'run'               : d_runCMDresp,
+            'detail'            : d_json
+        }
+
+class PluginRep(Shexec):
+    '''
+    A specialization of Shexec that runs a container image to determine its
+    json description
+    '''
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def chrispl_onCUBEargs(self):
         '''
@@ -80,6 +134,37 @@ class PluginRun:
             'args':     self.string_clean(str_args)
         }
 
+    def containerspec_parse(self, str_containerspec : str, **kwargs) -> str:
+        """
+        Given a containerspec of pattern
+
+            <prefix>/<prefix>/.../[intro]-<name>[:version]
+
+        return various parsed elements, based on `kwargs` "return = <choice>"
+        where <choice> is:
+
+                pluginexec
+                pluginname
+                public_repo
+
+        Args:
+            str_containerspec (str): the container string name
+
+        Returns:
+            str: a parsed string such as the pluginexec name or the pluginfullname
+        """
+        str_result  : str   = ""
+        str_parse   : str   = 'pluginexec'
+        for k,v in kwargs.items():
+            if k == 'find'      : str_parse     = v
+        if 'exec' in str_parse.lower():
+            str_result  = pluginexec(str_containerspec)
+        if 'name' in str_parse.lower():
+            str_result  = pluginname(str_containerspec)
+        if 'repo' in str_parse.lower():
+            str_result  = public_repo(self.env.options.public_repobase, str_containerspec)
+        return str_result
+
     def chris_cookiecutter_info_args(self, str_containerspec : str) -> dict:
         """
         Args needed to determine json rep for cookiecutter style plugins.
@@ -96,7 +181,7 @@ class PluginRun:
         self.env.INFO('Attempting cookiecutter call to find JSON representation...')
         str_pluginexec  : str   = self.env.options.pluginexec
         if not len(self.env.options.pluginexec):
-            str_pluginexec = ((str_containerspec.split('/')[-1]).split('-')[-1]).split(':')[0]
+            str_pluginexec = self.containerspec_parse(str_containerspec, find = 'pluginexec')
         str_args        : str   = """
         run --rm %s %s --json
         """ % (str_containerspec, str_pluginexec)
@@ -126,7 +211,9 @@ class PluginRun:
         Returns:
             dict: results from jobber call
         """
-        d_dockerpull    : dict  = self.shell.job_run("docker pull %s" % self.options.dock_image)
+        str_cmd         : str   = "docker pull %s" % self.options.dock_image
+        d_dockerpull    : dict  = self.shell.job_run(str_cmd)
+        self.env.INFO("\n%s" % str_cmd)
         return d_dockerpull
 
     def jsonScript_buildAndExec(self, argfunc) -> dict:
@@ -148,6 +235,7 @@ class PluginRun:
         b_status            : bool  = False
         d_json              : dict  = {}
 
+        self.env.INFO("\n%s" % str_PLCmd)
         with open(str_PLCmdfile, 'w') as f:
             f.write('#!/bin/bash\n')
             f.write(str_PLCmd)
@@ -198,7 +286,7 @@ class PluginRun:
         if len(self.env.options.json):
             d_runCMDresp        = self.json_readFromFile()
         if d_runCMDresp['returncode']:
-            self.env.INFO('\ndocker pull:\n%s' % json.dumps(self.docker_pull(), indent = 4))
+            self.env.INFO('\n%s' % json.dumps(self.docker_pull(), indent = 4))
             for argfunc in [self.chris_plugin_info_args, self.chris_cookiecutter_info_args]:
                 d_runCMDresp    = self.jsonScript_buildAndExec(argfunc)
                 if d_runCMDresp['returncode']:
@@ -216,6 +304,7 @@ class PluginRun:
             'run'               : d_runCMDresp,
             'rep'               : d_json
         }
+
 
 class Register:
     '''
@@ -287,18 +376,33 @@ class Register:
             Returns:
                 dict: a possibly updated d_jrep dictionary
             """
+            b_status    = False
+            if not len(d_cli['dock_image']):
+                self.env.ERROR('The parameter "--dock_image" must be set and have non-zero length!')
             if str_key in d_cli:
+                b_status = True
                 if len(d_cli[str_key]):
                     d_jrep[str_key] = d_cli[str_key]
-            return d_jrep
-
+                else:
+                    if str_key == 'name': d_jrep[str_key] = pluginname(d_cli['dock_image'])
+                    if str_key == 'public_repo' : d_jrep[str_key] = \
+                        public_repo(d_cli['public_repobase'],
+                                    d_cli['dock_image'])
+            return d_jrep, b_status
+        d_register  : dict  = {
+            'status'    : False
+        }
+        b_statusAND : bool  = True
         if d_jsonRep['status']:
             d_cli   = vars(self.options)
             d_json  = d_jsonRep['rep']
-            for f in ['name', 'public_repo', 'dock_image']:
-                d_json = assign_if_defined(f, d_cli, d_json)
-
-            d_register   : dict         = self.register_do(d_json)
+            for f in ['dock_image', 'name', 'public_repo']:
+                d_json, status = assign_if_defined(f, d_cli, d_json)
+                b_statusAND &= status
+            if not b_statusAND:
+                d_register['error']     = 'A required CLI parameter is missing!'
+            else:
+                d_register              = self.register_do(d_json)
         else:
             self.env.ERROR("Some error was returned when determining the plugin json representation!")
             self.env.ERROR('stdout: %s' % d_jsonRep['run']['stdout'])
