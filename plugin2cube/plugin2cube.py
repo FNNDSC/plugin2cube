@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__ = '2.0.2'
+__version__ = '2.0.4'
 
 from    pathlib                 import Path
 
@@ -28,7 +28,7 @@ class plugin2cube:
             if k == 'env'               : self.env                  = v
             if k == 'options'           : self.options              = v
 
-    def prep_do(self) -> action.PluginRun:
+    def prep_do(self) -> action.PluginRep:
         """
         Perform some setup and initial LOG output
 
@@ -36,11 +36,14 @@ class plugin2cube:
             options (Namespace): input CLI options
 
         Returns:
-            action.PluginRun: a runnable object that is used to determine the
+            action.PluginRep: a runnable object that is used to determine the
                               plugin JSON representation
         """
 
-        PLjson                  = action.PluginRun(env = self.env, options = self.options)
+        PLjson                  = action.PluginRep(
+                                        env     = self.env,
+                                        options = self.options
+                                )
 
         self.env.INFO("Doing some quick prep...")
 
@@ -57,13 +60,13 @@ class plugin2cube:
 
         return PLjson
 
-    def plugin_add(self, PLjson : action.PluginRun) -> dict:
+    def plugin_add(self, PLjson : action.PluginRep) -> dict:
         """
         Add the described plugin to the specified CUBE.
 
         Args:
             options (Namespace): CLI option space
-            PLjson (action.PluginRun): a runnable object used to determine the
+            PLjson (action.PluginRep): a runnable object used to determine the
                                        base JSON representation
 
         Returns:
