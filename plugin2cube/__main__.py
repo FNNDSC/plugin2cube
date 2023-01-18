@@ -84,14 +84,18 @@ package_CLIsynpsisArgs = """
         or
                             localhost/fnndsc/pl-someAnalysis
 
-        --name <pluginNameInCUBE>
+        [--name <pluginNameInCUBE>]
         The name of the plugin within CUBE. Typically something like
-        "pl-someAnalysis".
+        "pl-someAnalysis". If not supplied, name will be inferred from
+        the <container_name>, by stripping and leading prefices and trailing
+        versioning.
 
-        --public_repo <repo_name>
+        [--public_repo <repo_name>]
         The URL of the plugin code, typically on github. This is accessed to
         find a README.[rst|md] which is used by the ChRIS UI when providing
-        plugin details.
+        plugin details. If not supplied, the repo will be assumed to be
+
+                    https://github.com/FNNDSC/<pluginNameInCUBE>
 
         [--pluginexec <exec>]
         The name of the actual plugin executable within the image if this
@@ -272,6 +276,11 @@ parser.add_argument(
             help    = 'repo hosting the container image'
 )
 parser.add_argument(
+            '--public_repobase',
+            default = 'https://github.com/FNNDSC',
+            help    = 'a default base public repo'
+)
+parser.add_argument(
             '--pluginexec',
             default = '',
             help    = 'plugin executable name for cookiecutter style pluginsp'
@@ -332,6 +341,7 @@ def Env_setup(options: Namespace):
         options (Namespace):    options passed from the CLI caller
     """
     global Env
+    status  : bool          = True
     options.inputdir        = Path(options.inputdir)
     options.outputdir       = Path(options.outputdir)
     Env.inputdir            = options.inputdir
@@ -345,6 +355,10 @@ def Env_setup(options: Namespace):
                 port        = options.debugPort,
                 host        = options.debugHost
     )
+    if not len(options.dock_image):
+        Env.ERROR("The '--dock_image <value>' CLI MUST be specified!")
+        status              = False
+    return status
 
 def earlyExit_check(args) -> int:
     """
@@ -375,20 +389,18 @@ def main(args=None):
     Env.version         = plugin2cube.__version__
 
     options             = parser.parse_args()
-    retcode     : int   = 0
+    retcode     : int   = 1
     if earlyExit_check(options): return 1
 
     # set_trace(term_size=(253, 62), host = '0.0.0.0', port = 7900)
 
     Env.options     = options
-    Env_setup(options)
-    Env.set_telnet_trace_if_specified()
+    if Env_setup(options):
+        Env.set_telnet_trace_if_specified()
+        print(DISPLAY_TITLE)
+        d_register  = plugin2cube.plugin2cube(options = options, env = Env).run()
+        if d_register['status']:    retcode = 0
 
-    print(DISPLAY_TITLE)
-    d_register      = plugin2cube.plugin2cube(options = options, env = Env).run()
-
-    if not d_register['status']:    retcode = 1
-    else:                           retcode = 0
     Env.INFO("terminating with code %d..." % retcode)
     return retcode
 
