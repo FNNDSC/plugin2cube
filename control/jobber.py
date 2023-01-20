@@ -104,15 +104,20 @@ class Jobber:
         }
         str_stdoutLine  : str   = ""
         str_stdout      : str   = ""
+        b_pipeOK        : bool  = False
 
-        p = subprocess.Popen(
-                    str_cmd.split(),
-                    stdout      = subprocess.PIPE,
-                    stderr      = subprocess.PIPE,
-        )
+        try:
+            p = subprocess.Popen(
+                        str_cmd.split(),
+                        stdout      = subprocess.PIPE,
+                        stderr      = subprocess.PIPE,
+            )
+            b_pipeOK    = True
+        except Exception as e:
+            str_stderr  = str(e)
 
         # Realtime output on stdout
-        while True:
+        while b_pipeOK:
             stdout      = p.stdout.readline()
             if p.poll() is not None:
                 break
@@ -124,8 +129,12 @@ class Jobber:
         d_ret['cmd']        = str_cmd
         d_ret['cwd']        = os.getcwd()
         d_ret['stdout']     = str_stdout
-        d_ret['stderr']     = p.stderr.read().decode()
-        d_ret['returncode'] = p.returncode
+        if b_pipeOK:
+            d_ret['stderr']     = p.stderr.read().decode()
+            d_ret['returncode'] = p.returncode
+        else:
+            d_ret['stderr']     = str_stderr
+            d_ret['returncode'] = -1
         with open('/tmp/job.json', 'w') as f:
             json.dump(d_ret, f, indent=4)
         if int(self.args['verbosity']) and len(d_ret['stderr']):
