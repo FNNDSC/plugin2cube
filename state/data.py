@@ -15,6 +15,18 @@ import  pudb
 import  json
 import  os
 import  inspect
+import  sys
+
+logger_format = (
+    "<green>{time:YYYY-MM-DD HH:mm:ss}</green> │ "
+    "<level>{level: <5}</level> │ "
+    "<yellow>{name: >25}</yellow>::"
+    "<cyan>{function: <30}</cyan> @"
+    "<cyan>{line: <4}</cyan> ║ "
+    "<level>{message}</level>"
+)
+logger.remove()
+logger.add(sys.stderr, format=logger_format)
 
 class env:
     '''
@@ -43,17 +55,21 @@ class env:
         for k,v in kwargs.items():
             if k == 'level' : level = v
         if int(self.options.verbosity) >= level:
-            logger.opt(depth=1).debug(*args)
+            logger.opt(depth=1, colors=True).debug(*args)
 
     def INFO(self, *args, **kwargs):
         level   : int   = 1
         for k,v in kwargs.items():
             if k == 'level' : level = v
         if int(self.options.verbosity) >= level:
-            logger.opt(depth=1).info(*args)
+            logger.opt(depth=1, colors=True).info(*args)
 
-    def ERROR(self, *args):
-        logger.opt(depth=1).error(*args)
+    def ERROR(self, *args, **kwargs):
+        level   : int   = 0
+        for k,v in kwargs.items():
+            if k == 'level' : level = v
+        if int(self.options.verbosity) >= level:
+            logger.opt(depth=1).error(*args)
 
     @property
     def version(self):
