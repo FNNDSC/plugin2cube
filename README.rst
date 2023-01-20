@@ -49,17 +49,29 @@ Arguments
            The name of the plugin container image. This is typically something like
 
                                    fnndsc/pl-someAnalysis
-           or
+                                          -- or --
                                localhost/fnndsc/pl-someAnalysis
 
-           --name <pluginNameInCUBE>
-           The name of the plugin within CUBE. Typically something like
-           "pl-someAnalysis".
+           and is a REQUIRED parameter.
 
-           --public_repo <repo_name>
+           [--name <pluginNameInCUBE>]
+           The name of the plugin within CUBE. Typically something like
+           "pl-someAnalysis". If not supplied, name will be inferred from
+           the <container_name>, by stripping and leading prefices and trailing
+           versioning.
+
+           [--public_repobase <basename>]
+           The base URL of the plugin code, typically on github. If not specified,
+           is assumed to be
+
+                       https://github.com/FNNDSC
+
+           [--public_repo <repo_name>]
            The URL of the plugin code, typically on github. This is accessed to
            find a README.[rst|md] which is used by the ChRIS UI when providing
-           plugin details.
+           plugin details. If not supplied, the repo will be assumed to be
+
+                       <public_repobase>/<pluginNameInCUBE>
 
            [--pluginexec <exec>]
            The name of the actual plugin executable within the image if this
@@ -78,7 +90,7 @@ Arguments
            [--CUBEpasswd <password>] ("chris1234")
            The admin password.
 
-           [--json <jsonRepFile>]
+           [--jsonFile <jsonRepFile>]
            If provided, read the representation from <jsonRepFile> and do not
            attempt to run the plugin with docker.
 
@@ -138,10 +150,24 @@ To register a plugin, do
 
    # Simplest way -- json representation is determined by running the container
    # This requires of course that the machine running this script has docker installed!
-   plugin2cube --CUBEurl http://localhost:8000/api/v1/ --CUBEuser chris --CUBEpassword chris1234 \
-               --dock_image local/pl-imageProc                         \
-               --name pl-imageProc                                     \
-               --public_repo https://github.com/FNNDSC/pl-imageProc
+   plugin2cube     --CUBEurl http://localhost:8000/api/v1/                 \
+                   --CUBEuser chris --CUBEpassword chris1234               \
+                   --dock_image local/pl-imageProc                         \
+                   --name pl-imageProc                                     \
+                   --public_repo https://github.com/FNNDSC/pl-imageProc
+
+Note that the above can also be equivalently specified with
+
+.. code:: shell
+
+   # Simplest way -- json representation is determined by running the container
+   # This requires of course that the machine running this script has docker installed!
+   plugin2cube     --CUBEurl http://localhost:8000/api/v1/                 \
+                   --CUBEuser chris --CUBEpassword chris1234               \
+                   --dock_image local/pl-imageProc
+
+where the ``--name`` and ``--public_repo`` are inferred from the
+``--dock_image`` and a default ``--public_repobase``
 
 Development
 -----------
