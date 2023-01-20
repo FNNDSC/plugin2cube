@@ -494,6 +494,7 @@ class Register(Shexec):
                         public_repo(d_cli['public_repobase'],
                                     d_cli['dock_image'])
             return d_jrep, b_status
+
         d_register  : dict  = {
             'status'    : False,
             'obj'       : {
