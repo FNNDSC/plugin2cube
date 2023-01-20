@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__ = '2.2.4'
+__version__ = '2.2.6'
 
 from    pathlib                 import Path
 

@@ -57,6 +57,7 @@ str_desc                =  DISPLAY_TITLE + """
 
 package_CLIself         = """
         --dock_image <container_name>                                           \\
+        [--nodockerpull]                                                        \\
         [--name <pluginNameInCUBE>]                                             \\
         [--public_repo <repo_name>]                                             \\
         [--public_repobase <basename>]                                          \\
@@ -86,6 +87,12 @@ package_CLIsynpsisArgs = """
                             localhost/fnndsc/pl-someAnalysis
 
         and is a REQUIRED parameter.
+
+        [--nodockerpull]
+        If specified, the app will not try and pull the image, but will assume
+        the image exists in the local repository space. This is useful for
+        container images that are purely local and have not been pushed to any
+        container registry.
 
         [--name <pluginNameInCUBE>]
         The name of the plugin within CUBE. Typically something like
@@ -273,6 +280,12 @@ parser.add_argument(
             '--dock_image',
             default = '',
             help    = 'name of the docker container'
+)
+parser.add_argument(
+            '--nodockerpull',
+            default = False,
+            action  = 'store_true',
+            help    = 'if specified, do not attempt to pull the image from a registry first'
 )
 parser.add_argument(
             '--name',

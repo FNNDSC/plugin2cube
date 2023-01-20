@@ -54,6 +54,12 @@ Arguments
 
            and is a REQUIRED parameter.
 
+           [--nodockerpull]
+           If specified, the app will not try and pull the image, but will assume
+           the image exists in the local repository space. This is useful for
+           container images that are purely local and have not been pushed to any
+           container registry.
+
            [--name <pluginNameInCUBE>]
            The name of the plugin within CUBE. Typically something like
            "pl-someAnalysis". If not supplied, name will be inferred from

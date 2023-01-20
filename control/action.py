@@ -315,7 +315,10 @@ class PluginRep(Shexec):
         d_runCMDresp    : dict  = {'returncode' : 1}
         d_json          : dict  = {'error' : 'could not pull image'}
 
-        d_runCMDresp, b_pullOK  = docker_pullIfNeeded()
+        if not self.options.nodockerpull:
+            d_runCMDresp, b_pullOK  = docker_pullIfNeeded()
+        else:
+            b_pullOK = True
         if b_pullOK:
             d_runCMDresp, b_jsonOK  = jsonRep_get()
         if not d_runCMDresp['returncode']:
