@@ -286,7 +286,7 @@ parser.add_argument(
             help    = 'plugin executable name for cookiecutter style pluginsp'
 )
 parser.add_argument(
-            '--json',
+            '--jsonFile',
             default = '',
             help    = 'plugin JSON representation file'
 )
@@ -397,11 +397,11 @@ def main(args=None):
     Env.options     = options
     if Env_setup(options):
         Env.set_telnet_trace_if_specified()
-        print(DISPLAY_TITLE)
+        if int(options.verbosity) > 1: print(DISPLAY_TITLE)
         d_register  = plugin2cube.plugin2cube(options = options, env = Env).run()
         if d_register['status']:    retcode = 0
 
-    Env.INFO("terminating with code %d..." % retcode)
+    Env.INFO("terminating with code %d..." % retcode, level = 2)
     return retcode
 
 if __name__ == '__main__':
