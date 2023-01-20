@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__ = '2.0.4'
+__version__ = '2.2.0'
 
 from    pathlib                 import Path
 
@@ -45,17 +45,17 @@ class plugin2cube:
                                         options = self.options
                                 )
 
-        self.env.INFO("Doing some quick prep...")
+        self.env.INFO("Doing some quick prep...", level = 2)
 
-        self.env.DEBUG("plugin arguments...")
+        self.env.DEBUG("plugin arguments...", level = 3)
         for k,v in self.options.__dict__.items():
-             self.env.DEBUG("%25s:  [%s]" % (k, v))
-        self.env.DEBUG("")
+             self.env.DEBUG("%25s:  [%s]" % (k, v), level = 3)
+        self.env.DEBUG("", level = 3)
 
         if self.options.osenv:
             self.env.DEBUG("base environment...")
             for k,v in os.environ.items():
-                self.env.DEBUG("%25s:  [%s]" % (k, v))
+                self.env.DEBUG("%25s:  [%s]" % (k, v), level = 3)
             self.env.DEBUG("")
 
         return PLjson
@@ -101,14 +101,15 @@ class plugin2cube:
         str_threadName  : str   = current_thread().getName()
         file_timestamp('START')
 
-        self.env.INFO("Adding plugin...")
+        self.env.INFO("Registering plugin <magenta>%s</magenta>..." % self.options.dock_image)
         d_register          = register(jsonRep_get())
-        self.env.INFO('Register result:')
         if d_register['status']:
-            self.env.INFO('\n%s' % json.dumps(d_register, indent = 4))
+            self.env.INFO('Registration of plugin <magenta>%s</magenta>: <green>OK!</green>' % self.options.dock_image)
+            self.env.INFO('\n%s' % json.dumps(d_register, indent = 4), level = 3)
         else:
-            self.env.ERROR('\n%s' % json.dumps(d_register, indent =4))
-        self.env.INFO('-30-')
+            self.env.INFO('Registration <magenta>%s</magenta>: <red>Failed!</red>' % self.options.dock_image)
+            self.env.ERROR(d_register['obj']['run']['stderr'])
+            self.env.ERROR('\n%s' % json.dumps(d_register, indent= 4), level = 2)
         file_timestamp('\n%s' % json.dumps(d_register, indent = 4))
         file_timestamp('END')
         return d_register
