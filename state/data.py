@@ -20,7 +20,7 @@ import  sys
 logger_format = (
     "<green>{time:YYYY-MM-DD HH:mm:ss}</green> │ "
     "<level>{level: <5}</level> │ "
-    "<yellow>{name: >25}</yellow>::"
+    "<yellow>{name: >28}</yellow>::"
     "<cyan>{function: <30}</cyan> @"
     "<cyan>{line: <4}</cyan> ║ "
     "<level>{message}</level>"
