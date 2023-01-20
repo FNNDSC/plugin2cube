@@ -57,14 +57,15 @@ str_desc                =  DISPLAY_TITLE + """
 
 package_CLIself         = """
         --dock_image <container_name>                                           \\
-        --name <pluginNameInCUBE>                                               \\
-        --public_repo <repo_name>                                               \\
+        [--name <pluginNameInCUBE>]                                             \\
+        [--public_repo <repo_name>]                                             \\
+        [--public_repobase <basename>]                                          \\
         [--pluginexec <exec>]                                                   \\
         [--computenames <commalist,of,envs>]                                    \\
         [--CUBEurl <CUBEURL>]                                                   \\
         [--CUBEuser <user>]                                                     \\
         [--CUBEpasswd <password>]                                               \\
-        [--json <jsonRepFile>]                                                  \\
+        [--jsonFile <jsonRepFile>]                                              \\
         [--inputdir <inputdir>]                                                 \\
         [--outputdir <outputdir>]                                               \\
         [--man]                                                                 \\
@@ -81,8 +82,10 @@ package_CLIsynpsisArgs = """
         The name of the plugin container image. This is typically something like
 
                                 fnndsc/pl-someAnalysis
-        or
+                                       -- or --
                             localhost/fnndsc/pl-someAnalysis
+
+        and is a REQUIRED parameter.
 
         [--name <pluginNameInCUBE>]
         The name of the plugin within CUBE. Typically something like
@@ -90,12 +93,18 @@ package_CLIsynpsisArgs = """
         the <container_name>, by stripping and leading prefices and trailing
         versioning.
 
+        [--public_repobase <basename>]
+        The base URL of the plugin code, typically on github. If not specified,
+        is assumed to be
+
+                    https://github.com/FNNDSC
+
         [--public_repo <repo_name>]
         The URL of the plugin code, typically on github. This is accessed to
         find a README.[rst|md] which is used by the ChRIS UI when providing
         plugin details. If not supplied, the repo will be assumed to be
 
-                    https://github.com/FNNDSC/<pluginNameInCUBE>
+                    <public_repobase>/<pluginNameInCUBE>
 
         [--pluginexec <exec>]
         The name of the actual plugin executable within the image if this
@@ -114,7 +123,7 @@ package_CLIsynpsisArgs = """
         [--CUBEpasswd <password>] ("chris1234")
         The admin password.
 
-        [--json <jsonRepFile>]
+        [--jsonFile <jsonRepFile>]
         If provided, read the representation from <jsonRepFile> and do not
         attempt to run the plugin with docker.
 
