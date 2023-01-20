@@ -99,18 +99,6 @@ class PluginRep(Shexec):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def docker_pull(self) -> dict:
-        """
-        Pull the container image.
-
-        Returns:
-            dict: results from jobber call
-        """
-        str_cmd         : str   = "docker pull %s" % self.options.dock_image
-        d_dockerpull    : dict  = self.shell.job_run(str_cmd)
-        self.env.INFO("\n%s" % str_cmd)
-        return d_dockerpull
-
     def chrispl_onCUBEargs(self):
         '''
         Return a string specifying the CUBE instance
@@ -365,7 +353,7 @@ class CHRS(Shexec):
                 self.options.CUBEpasswd
         ))
         d_login         : dict  = self.shell.job_run(str_cmd)
-        self.env.INFO("\n%s" % str_cmd)
+        self.env.INFO("\t$> %s" % str_cmd)
         return d_login
 
     def pipeline_add(self, str_filename : str) -> dict:
@@ -382,7 +370,7 @@ class CHRS(Shexec):
         chrs pipeline-file add %s
         """ % (str_filename))
         d_pipeline_add  : dict  = self.shell.job_run(str_cmd)
-        self.env.INFO("\n%s" % str_cmd)
+        self.env.INFO("\t$> %s" % str_cmd)
         return d_pipeline_add
 
     def chrispl_onCUBEargs(self):
@@ -392,107 +380,6 @@ class CHRS(Shexec):
         return {
             'onCUBE':  json.dumps(self.env.CUBE.onCUBE())
         }
-
-
-    def chris_plugin_info_args(self, str_containerspec : str) -> dict:
-        """
-        Args needed to determine json rep for chris template style plugins.
-
-        Args:
-            str_containerspec (str): the name of the container
-
-        Returns:
-            dict: args to execute
-        """
-        self.env.INFO('Attempting chris_plugin_info call to find JSON representation...')
-        str_args        : str = """
-        run --rm %s chris_plugin_info
-        """ % (str_containerspec)
-        return {
-            'args':     self.string_clean(str_args)
-        }
-
-    def containerspec_parse(self, str_containerspec : str, **kwargs) -> str:
-        """
-        Given a containerspec of pattern
-
-            <prefix>/<prefix>/.../[intro]-<name>[:version]
-
-        return various parsed elements, based on `kwargs` "return = <choice>"
-        where <choice> is:
-
-                pluginexec
-                pluginname
-                public_repo
-
-        Args:
-            str_containerspec (str): the container string name
-
-        Returns:
-            str: a parsed string such as the pluginexec name or the pluginfullname
-        """
-        str_result  : str   = ""
-        str_parse   : str   = 'pluginexec'
-        for k,v in kwargs.items():
-            if k == 'find'      : str_parse     = v
-        if 'exec' in str_parse.lower():
-            str_result  = pluginexec(str_containerspec)
-        if 'name' in str_parse.lower():
-            str_result  = pluginname(str_containerspec)
-        if 'repo' in str_parse.lower():
-            str_result  = public_repo(self.env.options.public_repobase, str_containerspec)
-        return str_result
-
-    def chris_cookiecutter_info_args(self, str_containerspec : str) -> dict:
-        """
-        Args needed to determine json rep for cookiecutter style plugins.
-
-        If the CLI options --pluginexec is empty, then this method will attempt
-        to infer the exec name for the plugin based on its <str_containerspec>
-
-        Args:
-            str_containerspec (str): the name of the container
-
-        Returns:
-            dict: args to execute
-        """
-        self.env.INFO('Attempting cookiecutter call to find JSON representation...')
-        str_pluginexec  : str   = self.env.options.pluginexec
-        if not len(self.env.options.pluginexec):
-            str_pluginexec = self.containerspec_parse(str_containerspec, find = 'pluginexec')
-        str_args        : str   = """
-        run --rm %s %s --json
-        """ % (str_containerspec, str_pluginexec)
-        return {
-            'args'  : self.string_clean(str_args)
-        }
-
-    def plugin_execForJSON(self, func = None) -> dict:
-        '''
-        Return the CLI for determining the plugin JSON representation
-        '''
-        try:
-            str_cmd = """docker %s""" % (
-                func(self.options.dock_image)['args']
-                )
-        except:
-            str_cmd = ""
-        str_cmd = str_cmd.strip().replace('\n', '')
-        return {
-            'cmd' : str_cmd
-        }
-
-    def docker_pull(self) -> dict:
-        """
-        Pull the container image.
-
-        Returns:
-            dict: results from jobber call
-        """
-        str_cmd         : str   = "docker pull %s" % self.options.dock_image
-        d_dockerpull    : dict  = self.shell.job_run(str_cmd)
-        self.env.INFO("\n%s" % str_cmd)
-        return d_dockerpull
 
     def __call__(self) ->dict:
         '''
