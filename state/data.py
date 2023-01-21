@@ -49,6 +49,7 @@ class env:
             'port'      : 7900,
             'host'      : '0.0.0.0'
         }
+        os.chdir(self._inputdir)
 
     def DEBUG(self, *args, **kwargs):
         level   : int   = 1
