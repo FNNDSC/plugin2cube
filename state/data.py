@@ -49,7 +49,6 @@ class env:
             'port'      : 7900,
             'host'      : '0.0.0.0'
         }
-        os.chdir(self._inputdir)
 
     def DEBUG(self, *args, **kwargs):
         level   : int   = 1
@@ -95,6 +94,7 @@ class env:
     @inputdir.setter
     def inputdir(self, a):
         self._inputdir = a
+        os.chdir(self._inputdir)
 
     @property
     def outputdir(self):
