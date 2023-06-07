@@ -62,7 +62,10 @@ class env:
         for k,v in kwargs.items():
             if k == 'level' : level = v
         if int(self.options.verbosity) >= level:
-            logger.opt(depth=1, colors=True).info(*args)
+            try:
+                logger.opt(depth=1, colors=True).info(*args)
+            except:
+                logger.opt(depth=1).info(*args)
 
     def ERROR(self, *args, **kwargs):
         level   : int   = 0
