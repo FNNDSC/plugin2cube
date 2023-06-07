@@ -449,7 +449,7 @@ class Register(Shexec):
         except Exception as e:
             d_response  = {
                 'status'        : False,
-                'stdout'        : 'an exception occurred',
+                'stdout'        : 'an exception occurred -- check the server address (localhost can cause issues!)',
                 'stderr'        : str(e),
                 'returncode'    : 1
             }
