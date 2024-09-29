@@ -2,27 +2,29 @@
 import pudb
 
 try:
-    from    .                   import plugin2cube
+    from . import plugin2cube
 except:
-    from plugin2cube            import plugin2cube
+    from plugin2cube import plugin2cube
 
-from    pathlib                 import Path
-from    argparse                import ArgumentParser,                  \
-                                       Namespace,                       \
-                                       ArgumentDefaultsHelpFormatter,   \
-                                       RawTextHelpFormatter
+from pathlib import Path
+from argparse import (
+    ArgumentParser,
+    Namespace,
+    ArgumentDefaultsHelpFormatter,
+    RawTextHelpFormatter,
+)
 
 from importlib.metadata import Distribution
 
-__pkg       = Distribution.from_name(__package__)
+__pkg = Distribution.from_name(__package__)
 __version__ = __pkg.version
 
-import  os, sys, json
-import  pudb
-from    pudb.remote             import set_trace
-from    state                   import data
+import os, sys, json
+import pudb
+from pudb.remote import set_trace
+from state import data
 
-Env             = data.env()
+Env = data.env()
 
 DISPLAY_TITLE = r"""
        _             _        _____            _
@@ -35,9 +37,13 @@ DISPLAY_TITLE = r"""
 |_|            |___/
 """
 
-str_desc                =  DISPLAY_TITLE + """
+str_desc = (
+    DISPLAY_TITLE
+    + """
 
-                        -- version """ + __version__ + """ --
+                        -- version """
+    + __version__
+    + """ --
 
                 Register a plugin to a CUBE instance.
 
@@ -54,8 +60,9 @@ str_desc                =  DISPLAY_TITLE + """
     discussed elsewhere.
 
 """
+)
 
-package_CLIself         = """
+package_CLIself = """
         --dock_image <container_name>                                           \\
         [--nodockerpull]                                                        \\
         [--name <pluginNameInCUBE>]                                             \\
@@ -178,21 +185,23 @@ package_CLIexample = """
 
 """
 
-def synopsis(ab_shortOnly = False):
+
+def synopsis(ab_shortOnly=False):
     scriptName = os.path.basename(sys.argv[0])
-    shortSynopsis =  '''
+    shortSynopsis = f"""
     NAME
 
         plugin2cube
 
     SYNOPSIS
 
-        plugin2cube                                                             \ '''\
-        + package_CLIself + '''
+        plugin2cube                                                             \
+          {package_CLIself}
 
-    '''
+    """
 
-    description = '''
+    description = (
+        """
     DESCRIPTION
 
         `plugin2cube` is a simple app that allows for the registration of a
@@ -222,138 +231,96 @@ def synopsis(ab_shortOnly = False):
 
                             <prefix>/<prefix>/.../pl-<pluginexec>
 
-    ''' + package_CLIsynpsisArgs + package_CLIexample
+    """
+        + package_CLIsynpsisArgs
+        + package_CLIexample
+    )
     if ab_shortOnly:
         return shortSynopsis
     else:
         return shortSynopsis + description
 
-parser                  = ArgumentParser(
-    description         = '''
+
+parser = ArgumentParser(
+    description="""
 A CLI app to upload a plugin to a CUBE instance.
-''',
-    formatter_class     = RawTextHelpFormatter
+""",
+    formatter_class=RawTextHelpFormatter,
 )
 
 
 parser.add_argument(
-            '--version',
-            default = False,
-            dest    = 'b_version',
-            action  = 'store_true',
-            help    = 'print version info'
+    "--version",
+    default=False,
+    dest="b_version",
+    action="store_true",
+    help="print version info",
+)
+parser.add_argument("--man", default=False, action="store_true", help="show a man page")
+parser.add_argument(
+    "--osenv", default=False, action="store_true", help="show the base os environment"
 )
 parser.add_argument(
-            '--man',
-            default = False,
-            action  = 'store_true',
-            help    = 'show a man page'
+    "--synopsis", default=False, action="store_true", help="show a synopsis"
 )
 parser.add_argument(
-            '--osenv',
-            default = False,
-            action  = 'store_true',
-            help    = 'show the base os environment'
+    "--inputdir",
+    default="./",
+    help="optional directory specifying extra input-relative data",
 )
 parser.add_argument(
-            '--synopsis',
-            default = False,
-            action  = 'store_true',
-            help    = 'show a synopsis'
+    "--outputdir",
+    default="./",
+    help="optional directory specifying location of any output data",
 )
 parser.add_argument(
-            '--inputdir',
-            default = './',
-            help    = 'optional directory specifying extra input-relative data'
+    "--computenames",
+    default="host",
+    help="comma separated list of compute environments against which to register the plugin",
+)
+parser.add_argument("--dock_image", default="", help="name of the docker container")
+parser.add_argument(
+    "--nodockerpull",
+    default=False,
+    action="store_true",
+    help="if specified, do not attempt to pull the image from a registry first",
+)
+parser.add_argument("--name", default="", help="plugin name within CUBE")
+parser.add_argument(
+    "--public_repo", default="", help="repo hosting the container image"
 )
 parser.add_argument(
-            '--outputdir',
-            default = './',
-            help    = 'optional directory specifying location of any output data'
+    "--public_repobase",
+    default="https://github.com/FNNDSC",
+    help="a default base public repo",
 )
 parser.add_argument(
-            '--computenames',
-            default = 'host',
-            help    = 'comma separated list of compute environments against which to register the plugin'
+    "--pluginexec",
+    default="",
+    help="plugin executable name for cookiecutter style pluginsp",
+)
+parser.add_argument("--jsonFile", default="", help="plugin JSON representation file")
+parser.add_argument(
+    "--CUBEurl", default="http://localhost:8000/api/v1/", help="CUBE URL"
+)
+parser.add_argument("--CUBEuser", default="chirs", help="CUBE username")
+parser.add_argument("--CUBEpasswd", default="chris1234", help="CUBE password")
+parser.add_argument("--verbosity", default="0", help="verbosity level of app")
+parser.add_argument(
+    "--debug",
+    help="if true, toggle telnet pudb debugging",
+    dest="debug",
+    action="store_true",
+    default=False,
 )
 parser.add_argument(
-            '--dock_image',
-            default = '',
-            help    = 'name of the docker container'
+    "--debugTermSize",
+    help="the terminal 'cols,rows' size for debugging",
+    default="253,62",
 )
-parser.add_argument(
-            '--nodockerpull',
-            default = False,
-            action  = 'store_true',
-            help    = 'if specified, do not attempt to pull the image from a registry first'
-)
-parser.add_argument(
-            '--name',
-            default = '',
-            help    = 'plugin name within CUBE'
-)
-parser.add_argument(
-            '--public_repo',
-            default = '',
-            help    = 'repo hosting the container image'
-)
-parser.add_argument(
-            '--public_repobase',
-            default = 'https://github.com/FNNDSC',
-            help    = 'a default base public repo'
-)
-parser.add_argument(
-            '--pluginexec',
-            default = '',
-            help    = 'plugin executable name for cookiecutter style pluginsp'
-)
-parser.add_argument(
-            '--jsonFile',
-            default = '',
-            help    = 'plugin JSON representation file'
-)
-parser.add_argument(
-            '--CUBEurl',
-            default = 'http://localhost:8000/api/v1/',
-            help    = 'CUBE URL'
-)
-parser.add_argument(
-            '--CUBEuser',
-            default = 'chirs',
-            help    = 'CUBE username'
-)
-parser.add_argument(
-            '--CUBEpasswd',
-            default = 'chris1234',
-            help    = 'CUBE password'
-)
-parser.add_argument(
-            '--verbosity',
-            default = '0',
-            help    = 'verbosity level of app'
-)
-parser.add_argument(
-            "--debug",
-            help    = "if true, toggle telnet pudb debugging",
-            dest    = 'debug',
-            action  = 'store_true',
-            default = False
-)
-parser.add_argument(
-            "--debugTermSize",
-            help    = "the terminal 'cols,rows' size for debugging",
-            default = '253,62'
-)
-parser.add_argument(
-            "--debugPort",
-            help    = "the debugging telnet port",
-            default = '7900'
-)
-parser.add_argument(
-            "--debugHost",
-            help    = "the debugging telnet host",
-            default = '0.0.0.0'
-)
+parser.add_argument("--debugPort", help="the debugging telnet port", default="7900")
+parser.add_argument("--debugHost", help="the debugging telnet host", default="0.0.0.0")
+
 
 def Env_setup(options: Namespace):
     """
@@ -363,24 +330,25 @@ def Env_setup(options: Namespace):
         options (Namespace):    options passed from the CLI caller
     """
     global Env
-    status  : bool          = True
-    options.inputdir        = Path(options.inputdir)
-    options.outputdir       = Path(options.outputdir)
-    Env.inputdir            = options.inputdir
-    Env.outputdir           = options.outputdir
-    Env.CUBE.url            = str(options.CUBEurl)
-    Env.CUBE.user           = str(options.CUBEuser)
-    Env.CUBE.password       = str(options.CUBEpasswd)
+    status: bool = True
+    options.inputdir = Path(options.inputdir)
+    options.outputdir = Path(options.outputdir)
+    Env.inputdir = options.inputdir
+    Env.outputdir = options.outputdir
+    Env.CUBE.url = str(options.CUBEurl)
+    Env.CUBE.user = str(options.CUBEuser)
+    Env.CUBE.password = str(options.CUBEpasswd)
     Env.debug_setup(
-                debug       = options.debug,
-                termsize    = options.debugTermSize,
-                port        = options.debugPort,
-                host        = options.debugHost
+        debug=options.debug,
+        termsize=options.debugTermSize,
+        port=options.debugPort,
+        host=options.debugHost,
     )
     if not len(options.dock_image):
         Env.ERROR("The '--dock_image <value>' CLI MUST be specified!")
-        status              = False
+        status = False
     return status
+
 
 def earlyExit_check(args) -> int:
     """
@@ -392,9 +360,9 @@ def earlyExit_check(args) -> int:
     if args.man or args.synopsis:
         print(str_desc)
         if args.man:
-            str_help     = synopsis(False)
+            str_help = synopsis(False)
         else:
-            str_help     = synopsis(True)
+            str_help = synopsis(True)
         print(str_help)
         return 1
     if args.b_version:
@@ -402,29 +370,34 @@ def earlyExit_check(args) -> int:
         return 1
     return 0
 
+
 def main(args=None):
     """
     Main method for the programmatical calling of the plugin2cube
     module
     """
     global Env
-    Env.version         = plugin2cube.__version__
+    Env.version = plugin2cube.__version__
 
-    options             = parser.parse_args()
-    retcode     : int   = 1
-    if earlyExit_check(options): return 1
+    options = parser.parse_args()
+    retcode: int = 1
+    if earlyExit_check(options):
+        return 1
 
     # set_trace(term_size=(253, 62), host = '0.0.0.0', port = 7900)
 
-    Env.options     = options
+    Env.options = options
     if Env_setup(options):
         Env.set_telnet_trace_if_specified()
-        if int(options.verbosity) > 1: print(DISPLAY_TITLE)
-        d_register  = plugin2cube.plugin2cube(options = options, env = Env).run()
-        if d_register['status']:    retcode = 0
+        if int(options.verbosity) > 1:
+            print(DISPLAY_TITLE)
+        d_register = plugin2cube.plugin2cube(options=options, env=Env).run()
+        if d_register["status"]:
+            retcode = 0
 
-    Env.INFO("terminating with code %d..." % retcode, level = 2)
+    Env.INFO("terminating with code %d..." % retcode, level=2)
     return retcode
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     sys.exit(main(args))
